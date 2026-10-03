@@ -6,9 +6,8 @@ Supports Swift 5.9+, iOS 15+, macOS 12+, tvOS 15+ and watchOS 8+.
 
 ## Install
 
-Add this repository as a local Swift Package in Xcode while developing. After the
-repository is published to GitHub, use
-`https://github.com/pubbio/sdk-swift.git` and select the `codex/sdk-swift` branch
+Add this repository as a Swift Package in Xcode using
+`https://github.com/pubbio/sdk-swift.git` and select the `main` branch
 (or pin a verified commit). No version tag is assumed to exist. Add the `Pubb`
 library product to your target. Package registry publication is a separate step.
 
