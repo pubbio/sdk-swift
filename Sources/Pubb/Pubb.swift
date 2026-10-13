@@ -45,7 +45,7 @@ public final class Pubb {
         guard !key.isEmpty, ["ws", "wss"].contains(host.scheme), var components = URLComponents(url: host, resolvingAgainstBaseURL: false), components.host != nil, components.user == nil, components.password == nil else { throw PubbError.invalidConfiguration }
         components.path = "/socket"
         components.fragment = nil
-        components.queryItems = [URLQueryItem(name: "appKey", value: key)]
+        components.queryItems = [URLQueryItem(name: "appKey", value: key), URLQueryItem(name: "protocol", value: "2")]
         guard let url = components.url else { throw PubbError.invalidConfiguration }
         return url
     }

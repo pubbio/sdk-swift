@@ -32,7 +32,7 @@ final class PubbTests: XCTestCase {
         let key = "a&b? /ç"
         let url = try Pubb.socketURL(key: key, host: URL(string: "ws://localhost:38001/path?old=1")!)
         XCTAssertEqual(url.path, "/socket")
-        XCTAssertEqual(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems, [URLQueryItem(name: "appKey", value: key)])
+        XCTAssertEqual(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems, [URLQueryItem(name: "appKey", value: key), URLQueryItem(name: "protocol", value: "2")])
         XCTAssertThrowsError(try Pubb(key: "", wsHost: URL(string: "wss://ws.pubb.io")!))
         XCTAssertThrowsError(try Pubb(key: "key", wsHost: URL(string: "https://example.com")!))
     }
@@ -74,6 +74,28 @@ final class PubbTests: XCTestCase {
         XCTAssertEqual(socket.sent.first?["auth"], .string("key:signature"))
         XCTAssertEqual(socket.sent.first?["channel_data"], .string("{\"user_id\":\"a\"}"))
         socket.frame("{\"event\":\"pusher_internal:subscription_succeeded\",\"channel\":\"presence-room\",\"data\":{\"presence\":{\"hash\":{\"a\":{\"name\":\"Ada\"}},\"ids\":[\"a\"],\"count\":1}}}")
+        socket.frame("{\"event\":\"pubb:member_added\",\"channel\":\"presence-room\",\"data\":\"{\\\"user_id\\\":\\\"b\\\",\\\"user_info\\\":{}}\"}")
+        await settle()
+        XCTAssertEqual(channel.members.count, 2)
+        XCTAssertEqual(added, 1); XCTAssertEqual(subscribed, 1)
+        socket.frame("{\"event\":\"pusher_internal:member_removed\",\"channel\":\"presence-room\",\"data\":{\"user_id\":\"a\"}}")
+        await settle()
+        XCTAssertEqual(channel.members.count, 1)
+        pubb.disconnect()
+        XCTAssertTrue(channel.members.isEmpty)
+    }
+
+    func testPresenceUsesProtocolTwoAcknowledgement() async {
+        let socket = FakeSocket()
+        let pubb = Pubb(makeTransport: { socket }, authorizer: { _, _ in ChannelAuthorization(auth: "key:signature", channelData: "{\"user_id\":\"a\"}") })
+        let channel = pubb.subscribe("presence-room")
+        var added = 0, subscribed = 0
+        channel.bind("pusher:member_added") { _ in added += 1 }
+        channel.bind("pubb:subscription_succeeded") { _ in subscribed += 1 }
+        pubb.connect(); socket.handshake(); await settle()
+        XCTAssertEqual(socket.sent.first?["auth"], .string("key:signature"))
+        XCTAssertEqual(socket.sent.first?["channel_data"], .string("{\"user_id\":\"a\"}"))
+        socket.frame("{\"event\":\"pubb:subscription_succeeded\",\"channel\":\"presence-room\",\"data\":{\"presence\":{\"hash\":{\"a\":{\"name\":\"Ada\"}},\"ids\":[\"a\"],\"count\":1}}}")
         socket.frame("{\"event\":\"pubb:member_added\",\"channel\":\"presence-room\",\"data\":\"{\\\"user_id\\\":\\\"b\\\",\\\"user_info\\\":{}}\"}")
         await settle()
         XCTAssertEqual(channel.members.count, 2)
